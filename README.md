@@ -57,11 +57,9 @@ This SQL Server project creates a dimensional data warehouse (WWI_DW) with a fac
 ```
                     FactSales
                         |
-        +---------------+---------------+
-        |               |               |
-   DimCustomer    DimSalesPerson   DimProduct
-                        |
-                     DimDate
+        +---------------+---------------+---------------+
+        |               |               |               |
+   DimCustomer    DimSalesPerson   DimProduct        DimDate
 ```
 
 ### SCD Type 2 Implementation

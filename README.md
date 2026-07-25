@@ -1,5 +1,9 @@
 # Wide World Importers Data Warehouse
 
+> This project has moved to
+> [`sql-assignments/assignment-02-data-warehouse`](https://github.com/GHT4ngo/sql-assignments/tree/main/assignment-02-data-warehouse).
+> This repository is retained as a read-only archive.
+
 A SQL Server ETL assignment that builds a small star-schema warehouse from
 Microsoft's `WideWorldImporters` sample database. It loads sales facts, maintains
 three Slowly Changing Dimension Type 2 (SCD2) dimensions, and keeps a generated

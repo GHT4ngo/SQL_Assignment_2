@@ -644,9 +644,13 @@ BEGIN
     END TRY
     BEGIN CATCH
         IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
-        THROW;
+
+        PRINT 'PopulateTables failed. No changes were saved.';
+        PRINT 'SQL Server message: ' + ERROR_MESSAGE();
+        RETURN 1;
     END CATCH;
 
+    RETURN 0;
 END
 GO
 
@@ -1046,8 +1050,13 @@ BEGIN
     END TRY
     BEGIN CATCH
         IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
-        THROW;
+
+        PRINT 'UpdateTables failed. No changes were saved.';
+        PRINT 'SQL Server message: ' + ERROR_MESSAGE();
+        RETURN 1;
     END CATCH;
+
+    RETURN 0;
 END
 GO
 
@@ -1079,25 +1088,42 @@ DECLARE @WarehouseTableCount INT = (
       )
 );
 
+DECLARE @WarehouseIsReady BIT = 1;
+
 IF @WarehouseTableCount = 0
 BEGIN
     EXEC dbo.CreateTables;
 END
 ELSE IF @WarehouseTableCount < 6
 BEGIN
-    THROW 50001,
-        'WWI_DW is only partially initialized. Repair or remove the incomplete dbo warehouse tables before rerunning.',
-        1;
+    PRINT 'The warehouse is only partly created.';
+    PRINT 'Repair or remove the incomplete warehouse tables, then run the script again.';
+    SET @WarehouseIsReady = 0;
 END;
 
--- ------------------------------------------------------------
--- Step 2: Apply dimension changes before resolving keys for new facts
--- ------------------------------------------------------------
+IF @WarehouseIsReady = 1
+BEGIN
+    DECLARE @UpdateResult INT;
+    DECLARE @PopulateResult INT;
 
-EXEC dbo.UpdateTables;
+    -- ------------------------------------------------------------
+    -- Step 2: Apply dimension changes before loading new facts
+    -- ------------------------------------------------------------
+    EXEC @UpdateResult = dbo.UpdateTables;
 
--- ------------------------------------------------------------
--- Step 3: Load new dimension members, dates, and facts
--- ------------------------------------------------------------
+    -- Populate only when the update completed successfully.
+    IF @UpdateResult = 0
+    BEGIN
+        -- ------------------------------------------------------------
+        -- Step 3: Load new dimension members, dates, and facts
+        -- ------------------------------------------------------------
+        EXEC @PopulateResult = dbo.PopulateTables;
 
-EXEC dbo.PopulateTables;
+        IF @PopulateResult = 0
+            PRINT 'Warehouse load completed successfully.';
+    END
+    ELSE
+    BEGIN
+        PRINT 'PopulateTables was skipped because UpdateTables failed.';
+    END;
+END;

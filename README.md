@@ -61,8 +61,9 @@ The script creates three stored procedures:
 ### `dbo.CreateTables`
 
 Creates the fact table, dimensions, tracking table, indexes, and foreign keys.
-The script calls it only when none of the six warehouse tables exist. A partial
-schema causes a clear error instead of attempting an unsafe partial rebuild.
+The script calls it only when none of the six warehouse tables exist. If the
+schema is only partly created, the script prints a clear message and skips the
+load instead of attempting an unsafe partial rebuild.
 
 ### `dbo.UpdateTables`
 
@@ -83,8 +84,9 @@ Loads new business keys, their initial hashes, missing calendar dates, and new
 order-line facts. Temporary indexed key maps resolve source business keys to
 current warehouse surrogate keys.
 
-Both update and population phases use `XACT_ABORT`, `TRY/CATCH`, and an explicit
-transaction. A failed phase is rolled back as a unit.
+Both update and population phases use a transaction. If a phase fails, its
+changes are rolled back, a readable SQL Server message is printed, and the
+procedure returns `1`. A successful procedure returns `0`.
 
 ## Execution order
 
@@ -130,8 +132,8 @@ It checks:
 - source coverage for active business keys
 - repeat-run idempotency when the source is unchanged
 
-The script throws on the first failed assertion and prints a success message
-when every check passes.
+The separate validation script stops on the first failed assertion and prints a
+success message when every check passes.
 
 ## Operational notes
 
@@ -142,9 +144,10 @@ not inserted again, and unchanged dimensions do not receive new versions.
 
 ### Partial schema
 
-If only some required warehouse tables exist, the main script stops with error
-`50001`. This protects existing data from an ambiguous automatic repair. Restore
-the missing object deliberately or recreate the incomplete development database.
+If only some required warehouse tables exist, the main script prints an
+explanation and skips the load. This protects existing data from an ambiguous
+automatic repair. Restore the missing object deliberately or recreate the
+incomplete development database.
 
 ### Hashes
 
